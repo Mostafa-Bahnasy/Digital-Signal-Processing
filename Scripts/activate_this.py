@@ -7,8 +7,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-# add, sub,square,mult,accum,normalize
-
 
 class FileHandling:
     def __init__(self, path):
@@ -24,7 +22,7 @@ class FileHandling:
 
             X = []
             Y = []
-            for i in range(4, len(lines)):
+            for i in range(3, len(lines)):
                 x, y = lines[i].strip().split(' ')
                 X.append(float(x))
                 Y.append(float(y))
@@ -69,7 +67,8 @@ class Task_1:
                     line = f.readline()
                 else:
                     break
-
+        #print(len(expected_samples) )
+        #print(len(samples) )
         if len(expected_samples) != len(samples):
             print("Test case failed, your signal have different length from the expected one")
             return
@@ -166,6 +165,11 @@ class Task_1:
                 self.min_value_norm_Entry.pack(pady=2)
                 self.max_value_norm_abel.pack(pady=5)
                 self.max_value_norm_Entry.pack(pady=2)
+            else:
+                self.min_value_norm_abel.pack_forget()
+                self.min_value_norm_Entry.pack_forget()
+                self.max_value_norm_abel.pack_forget()
+                self.max_value_norm_Entry.pack_forget()
 
     def hide_all_mode(self):
         self.load_button.pack_forget()
@@ -228,6 +232,8 @@ class Task_1:
         self.signal_to_draw_combobox.pack(pady=5)
 
     def show_process_signal_mode(self):
+        self.compare_button.pack(pady=5)
+
         self.load_button.pack(pady=5)
         self.clear_button.pack(pady=5)
         self.generate_button.pack(pady=5)
@@ -296,9 +302,10 @@ class Task_1:
             messagebox.showinfo("Error","Invalid signal type. Choose 'sin' or 'cos'.")
             return
 
+        self.last_signal = Signal(n.tolist(),signal)
+
         self.plot_signals(n, signal, 'sin_cos')
 
-        self.last_signal = Signal(n.tolist(),signal)
 
 
     def process_signal_generator(self):
@@ -331,8 +338,8 @@ class Task_1:
         new_max = float(self.max_value_norm_Entry.get())
 
         sig.Y = list(map(lambda v: ((v - old_min) / (old_max - old_min)) * (new_max - new_min) + new_min, sig.Y))
-        self.plot_signals(sig.X,sig.Y,"Normalized Signal")
         self.last_signal = copy.deepcopy(sig)
+        self.plot_signals(sig.X,sig.Y,"Normalized Signal")
 
 
     def accumulate_signal(self):
@@ -344,8 +351,8 @@ class Task_1:
 
         sig.Y = list(itertools.accumulate(sig.Y))
 
-        self.plot_signals(sig.X,sig.Y,"Accumulated Signal")
         self.last_signal = copy.deepcopy(sig)
+        self.plot_signals(sig.X,sig.Y,"Accumulated Signal")
 
 
     def square_signal(self):
@@ -356,8 +363,8 @@ class Task_1:
         sig = copy.deepcopy(self.stack[len(self.stack)-1])
         sig.Y = [x * x for x in sig.Y]
 
-        self.plot_signals(sig.X,sig.Y,"Squared signal")
         self.last_signal = copy.deepcopy(sig)
+        self.plot_signals(sig.X,sig.Y,"Squared signal")
 
 
     def multiply_signal_by_factor(self):
@@ -370,9 +377,12 @@ class Task_1:
         factor = float(self.multiplication_entry.get())
 
         sig.Y = [x * factor for x in sig.Y]
+        self.last_signal = copy.deepcopy(sig)
 
         self.plot_signals(sig.X,sig.Y,"Multiplied signal")
-        self.last_signal = copy.deepcopy(sig)
+
+        # print(len(self.last_signal.X))
+
 
 
     def add_two_signals(self, multiplier):
@@ -380,8 +390,8 @@ class Task_1:
             messagebox.showinfo("Low resources","Please load enough signals!")
             return
 
-        sig1 = copy.deepcopy(self.stack[len(self.stack)-1])
-        sig2 = copy.deepcopy(self.stack[len(self.stack)-2])
+        sig2 = copy.deepcopy(self.stack[len(self.stack)-1])
+        sig1 = copy.deepcopy(self.stack[len(self.stack)-2])
         i = 0
         j = 0
         tmp = Signal([],[])
@@ -408,11 +418,11 @@ class Task_1:
 
         while j<len(sig2.X):
             tmp.X.append(sig2.X[j])
-            tmp.Y.append(sig2.Y[j])
+            tmp.Y.append(multiplier * sig2.Y[j])
             j = j + 1
 
-        self.plot_signals(tmp.X,tmp.Y,"Add/Sub Signal")
         self.last_signal = copy.deepcopy(tmp)
+        self.plot_signals(tmp.X,tmp.Y,"Add/Sub Signal")
 
 
     def generate_signal(self):
