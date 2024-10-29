@@ -1,3 +1,4 @@
+import math
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from typing import List
@@ -36,6 +37,7 @@ class Signal:
         self.X = x
         self.Y = y
 
+
 class Task_1:
     def __init__(self, root):
         self.root = root
@@ -46,6 +48,111 @@ class Task_1:
 
         self.RGB = ['red','green','blue','yellow']
         self.rgb_idx = 0
+
+    def QuantizationTest2(self,file_name,Your_IntervalIndices,Your_EncodedValues,Your_QuantizedValues,Your_SampledError):
+        expectedIntervalIndices=[]
+        expectedEncodedValues=[]
+        expectedQuantizedValues=[]
+        expectedSampledError=[]
+        with open(file_name, 'r') as f:
+            line = f.readline()
+            line = f.readline()
+            line = f.readline()
+            line = f.readline()
+            while line:
+                # process line
+                L=line.strip()
+                if len(L.split(' '))==4:
+                    L=line.split(' ')
+                    V1=int(L[0])
+                    V2=str(L[1])
+                    V3=float(L[2])
+                    V4=float(L[3])
+                    expectedIntervalIndices.append(V1)
+                    expectedEncodedValues.append(V2)
+                    expectedQuantizedValues.append(V3)
+                    expectedSampledError.append(V4)
+                    line = f.readline()
+                else:
+                    break
+        if(len(Your_IntervalIndices)!=len(expectedIntervalIndices)
+            or len(Your_EncodedValues)!=len(expectedEncodedValues)
+            or len(Your_QuantizedValues)!=len(expectedQuantizedValues)
+            or len(Your_SampledError)!=len(expectedSampledError)):
+            print("QuantizationTest2 Test case failed, your signal have different length from the expected one")
+            return
+        for i in range(len(Your_IntervalIndices)):
+            if(Your_IntervalIndices[i]!=expectedIntervalIndices[i]):
+                print("QuantizationTest2 Test case failed, your signal have different indicies from the expected one")
+                return
+
+        # for i in range(len(Your_EncodedValues)):
+        #     print(Your_EncodedValues[i],expectedEncodedValues[i])
+
+        for i in range(len(Your_EncodedValues)):
+            if(Your_EncodedValues[i]!=expectedEncodedValues[i]):
+                print("QuantizationTest2 Test case failed, your EncodedValues have different EncodedValues from the expected one")
+                return
+
+        for i in range(len(expectedQuantizedValues)):
+            if abs(Your_QuantizedValues[i] - expectedQuantizedValues[i]) < 0.01:
+                continue
+            else:
+                print("QuantizationTest2 Test case failed, your QuantizedValues have different values from the expected one")
+                return
+        for i in range(len(expectedSampledError)):
+            print(Your_SampledError[i] ,expectedSampledError[i] )
+        for i in range(len(expectedSampledError)):
+            if abs(Your_SampledError[i] - expectedSampledError[i]) < 0.01:
+                continue
+            else:
+                print("QuantizationTest2 Test case failed, your SampledError have different values from the expected one")
+                return
+
+        print('QuantizationTest2 Test case passed successfully')
+
+    def QuantizationTest1(self, file_name,Your_EncodedValues,Your_QuantizedValues):
+        expectedEncodedValues=[]
+        expectedQuantizedValues=[]
+        with open(file_name, 'r') as f:
+            line = f.readline()
+            line = f.readline()
+            line = f.readline()
+            line = f.readline()
+            while line:
+                # process line
+                L=line.strip()
+                if len(L.split(' '))==2:
+                    L=line.split(' ')
+                    V2=str(L[0])
+                    V3=float(L[1])
+                    expectedEncodedValues.append(V2)
+                    expectedQuantizedValues.append(V3)
+                    line = f.readline()
+                else:
+                    break
+        if( (len(Your_EncodedValues)!=len(expectedEncodedValues)) or (len(Your_QuantizedValues)!=len(expectedQuantizedValues))):
+            print("QuantizationTest1 Test case failed, your signal have different length from the expected one")
+            return
+
+        for i in range(len(Your_EncodedValues)):
+            print(Your_EncodedValues[i] , " ", expectedEncodedValues[i])
+
+        for i in range(len(Your_EncodedValues)):
+            if(Your_EncodedValues[i]!=expectedEncodedValues[i]):
+                print("QuantizationTest1 Test case failed, your EncodedValues have different EncodedValues from the expected one")
+                return
+
+        for i in range(len(expectedQuantizedValues)):
+            print(Your_QuantizedValues[i]," - ",expectedQuantizedValues[i] )
+
+        for i in range(len(expectedQuantizedValues)):
+            if abs(Your_QuantizedValues[i] - expectedQuantizedValues[i]) < 0.01:
+                continue
+            else:
+                print("QuantizationTest1 Test case failed, your QuantizedValues have different values from the expected one")
+                return
+        print("QuantizationTest1 Test case passed successfully")
 
     def SignalSamplesAreEqual(self, file_name, indices, samples):
         expected_indices = []
@@ -141,7 +248,7 @@ class Task_1:
         self.multiplication_entry.insert(0, "0.0")
 
         self.signal_to_draw_label = tk.Label(self.root, text="Signal to draw:", bg='lightblue', fg='darkblue')
-        self.signal_to_draw_combobox = ttk.Combobox(self.root, values=['signal', 'sincos signal', 'processed signal'])
+        self.signal_to_draw_combobox = ttk.Combobox(self.root, values=['signal', 'sincos signal', 'processed signal','Quantize'])
         self.signal_to_draw_combobox.bind("<<ComboboxSelected>>", self.on_to_draw_combo_change)
 
         self.signal_to_draw_combobox.set('signal')
@@ -150,7 +257,15 @@ class Task_1:
 
         self.compare_button = tk.Button(self.root, text="compare Signal Files", command=self.compare_signals,
                                         bg='skyblue', fg='black')
+
+        self.signal_to_quantize = tk.Label(self.root, text="Signal quantize:", bg='lightblue', fg='darkblue')
+        self.signal_to_quan_combobox = ttk.Combobox(self.root, values=['bit', 'level'])
+        self.signal_to_quan_combobox.set('bit')
+        self.quantize_entry = tk.Entry(self.root)
+        self.quantize_entry.insert(0, "0")
+
         self.show_single_mode()
+
 
     def on_processing_options_change(self,event):
         # Get the selected value
@@ -196,6 +311,9 @@ class Task_1:
         self.sampling_freq_entry.pack_forget()
         self.phase_label.pack_forget()
         self.phase_entry.pack_forget()
+        self.quantize_entry.pack_forget()
+        self.signal_to_quantize.pack_forget()
+        self.signal_to_quan_combobox.pack_forget()
 
     def signal_mode(self):
         self.hide_all_mode()
@@ -246,11 +364,23 @@ class Task_1:
         self.hide_all_mode()
         self.show_process_signal_mode()
 
+    def show_quantize_mode(self):
+        self.compare_button.pack(pady=5)
+
+        self.load_button.pack(pady=5)
+        self.clear_button.pack(pady=5)
+        self.generate_button.pack(pady=5)
+        self.signal_to_quantize.pack(pady=5)
+        self.signal_to_quan_combobox.pack(pady=5)
+        self.quantize_entry.pack(pady=5)
+    def quantize_mode(self):
+        self.hide_all_mode()
+        self.show_quantize_mode()
 
     def on_to_draw_combo_change(self,event):
         # Get the selected value
         selected_value = self.signal_to_draw_combobox.get()
-        # ['signal', 'sincos signal', 'processed signal']
+        # ['signal', 'sincos signal', 'processed signal','Quantize']
         if selected_value == 'signal':
             self.signal_mode()
             self.current_mode= 'signal'
@@ -260,8 +390,12 @@ class Task_1:
         elif selected_value == 'processed signal':
             self.process_signal_mode()
             self.current_mode = 'process'
+        elif selected_value == 'Quantize':
+            self.quantize_mode()
+            self.current_mode = 'Quantize'
         else:
             print("error")
+
 
 
     def navigate_file(self):
@@ -432,13 +566,21 @@ class Task_1:
             self.sincos_signal_generator()
         elif self.current_mode=='process':
             self.process_signal_generator()
+        elif self.current_mode=='Quantize':
+            self.Quantize_signal_generator()
         else:
             messagebox.showinfo("Error","chosen mode is undifiend")
 
 
     def compare_signals(self):
         compare_path = self.navigate_file()
-        self.SignalSamplesAreEqual(compare_path, self.last_signal.X, self.last_signal.Y)
+        if self.current_mode == 'Quantize':
+            if self.signal_to_quan_combobox.get() =='bit': # text 1
+                self.QuantizationTest1(compare_path,self.encoded_signal,self.quantized_signal)
+            else:
+                self.QuantizationTest2(compare_path,self.intervals,self.encoded_signal,self.quantized_signal,self.quantization_error)
+        else:
+            self.SignalSamplesAreEqual(compare_path, self.last_signal.X, self.last_signal.Y)
 
     def plot_signals(self, n, signal, text):
         self.rgb_idx = (self.rgb_idx + 1 ) % 4
@@ -477,9 +619,63 @@ class Task_1:
         plt.tight_layout()
         plt.show()
 
+    def Quantize_signal_generator(self):
+        sig =  copy.deepcopy(self.stack[len(self.stack)-1])
+        # for y in sig.Y:
+        #     print (y)
+        max_value = float(max(sig.Y))
+        min_value = float(min(sig.Y))
+        delta = max_value - min_value
+
+        levels = int(self.quantize_entry.get())
+        bits = levels
+        if(self.signal_to_quan_combobox.get() == 'bit'):
+            levels = 2 ** levels
+        else:
+            bits = int(math.log2(levels))
+
+        print("levels:", levels, "min: ", min_value,"max: ",max_value)
+        delta = round(float(delta / (levels)),3)
+        print("delta: ",delta)
+        intervals_ = []
+        cur_val = round(min_value,3)
+        while cur_val <max_value:
+            intervals_.append([round(cur_val,3),round(cur_val+delta,3)])
+            cur_val+=round(delta,3)
+            cur_val= round(cur_val,3)
+        #
+        # for [l,r] in intervals_:
+        #     print(l,r)
+        #(compare_path,self.intervals,self.encoded_signal,self.quantized_signal,self.quantization_error)
+        self.intervals =[]
+        self.quantization_error = []
+        self.quantized_signal =[]
+        self.encoded_signal =[]
+        for y in sig.Y:
+            near = float(2**20)
+            self.intervals.append(0)
+            self.quantization_error.append(0)
+            self.quantized_signal.append(0)
+            self.encoded_signal.append('0')
+            for i in range(0,len(intervals_)):
+                # print(intervals_[i][0],"->",y," <- ",intervals_[i][1])
+                mid_point = round((intervals_[i][1] + intervals_[i][0])/2,3)
+
+                if round(abs(mid_point - y),3)<near:
+                    if y == 0.9:
+                        print("near: ",near, "nw: ",abs(mid_point - y))
+                    near = round(abs(mid_point - y),3)
+                    self.intervals[len(self.intervals)-1] = i+1
+                    self.encoded_signal[len(self.encoded_signal)-1] = bin(i)[2:].zfill(bits)
+                    self.quantization_error [len(self.quantization_error)-1] = round(mid_point - y,3)
+                    self.quantized_signal [len(self.quantized_signal)-1] = mid_point
+
+        for i in range(len(sig.Y)):
+            print(self.encoded_signal[i], self.quantized_signal[i],sig.Y[i])
 
 
 
+        print("signal generated succ!")
 if __name__ == "__main__":
     root = tk.Tk()
     root.title("Signal Generator")
