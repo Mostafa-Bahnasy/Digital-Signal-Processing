@@ -3,9 +3,11 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from typing import List
 import itertools
+import  re
 import copy
 import numpy as np
 import matplotlib.pyplot as plt
+import cmath
 
 
 
@@ -24,9 +26,9 @@ class FileHandling:
             X = []
             Y = []
             for i in range(3, len(lines)):
-                x, y = lines[i].strip().split(' ')
-                X.append(float(x))
-                Y.append(float(y))
+                x, y = re.split(r",\s*",lines[i].strip())
+                X.append(float(x.rstrip("f")))
+                Y.append(float(y.rstrip("f")))
 
             signal_tmp = Signal(X, Y)
             return signal_tmp
@@ -239,13 +241,16 @@ class Task_1:
                                                  fg='darkblue')
         self.signal_processing_options_combobox = ttk.Combobox(self.root,
                                                               values=['add', 'sub', 'multiply', 'square', 'accumulate',
-                                                                      'normalize'])
+                                                                      'normalize','DFT','IDFT'])
         self.signal_processing_options_combobox.bind("<<ComboboxSelected>>", self.on_processing_options_change)
 
         self.signal_processing_options_combobox.set('square')
 
         self.multiplication_entry = tk.Entry(self.root)
         self.multiplication_entry.insert(0, "0.0")
+
+        self.FreqDFT_entry = tk.Entry(self.root)
+        self.FreqDFT_entry.insert(0, "0.0")
 
         self.signal_to_draw_label = tk.Label(self.root, text="Signal to draw:", bg='lightblue', fg='darkblue')
         self.signal_to_draw_combobox = ttk.Combobox(self.root, values=['signal', 'sincos signal', 'processed signal','Quantize'])
@@ -285,6 +290,10 @@ class Task_1:
                 self.min_value_norm_Entry.pack_forget()
                 self.max_value_norm_abel.pack_forget()
                 self.max_value_norm_Entry.pack_forget()
+                if selected_value =='DFT':
+                    self.FreqDFT_entry.pack(pady=5)
+                else:
+                    self.FreqDFT_entry.pack_forget()
 
     def hide_all_mode(self):
         self.load_button.pack_forget()
@@ -314,6 +323,7 @@ class Task_1:
         self.quantize_entry.pack_forget()
         self.signal_to_quantize.pack_forget()
         self.signal_to_quan_combobox.pack_forget()
+        self.FreqDFT_entry.pack_forget()
 
     def signal_mode(self):
         self.hide_all_mode()
@@ -373,6 +383,7 @@ class Task_1:
         self.signal_to_quantize.pack(pady=5)
         self.signal_to_quan_combobox.pack(pady=5)
         self.quantize_entry.pack(pady=5)
+        self.signal_to_draw_combobox.pack(pady=5)
     def quantize_mode(self):
         self.hide_all_mode()
         self.show_quantize_mode()
@@ -456,6 +467,10 @@ class Task_1:
             self.accumulate_signal()
         elif option == 'normalize':
             self.normalize_signal()
+        elif option == 'DFT':
+            self.DFT_signal()
+        elif option == 'IDFT':
+            self.DFT_signal(0,-1)
         else:
             messagebox.showinfo("Option Error", "The seleceted option is undefined!")
 
@@ -582,6 +597,11 @@ class Task_1:
         else:
             self.SignalSamplesAreEqual(compare_path, self.last_signal.X, self.last_signal.Y)
 
+
+    def plot_signals_(self,step,sig_1,sig_2):
+        self.rgb_idx = (self.rgb_idx + 1 ) % 4
+        plot_n = []
+
     def plot_signals(self, n, signal, text):
         self.rgb_idx = (self.rgb_idx + 1 ) % 4
         plot_n = []
@@ -662,8 +682,7 @@ class Task_1:
                 mid_point = round((intervals_[i][1] + intervals_[i][0])/2,3)
 
                 if round(abs(mid_point - y),3)<near:
-                    if y == 0.9:
-                        print("near: ",near, "nw: ",abs(mid_point - y))
+
                     near = round(abs(mid_point - y),3)
                     self.intervals[len(self.intervals)-1] = i+1
                     self.encoded_signal[len(self.encoded_signal)-1] = bin(i)[2:].zfill(bits)
@@ -676,6 +695,49 @@ class Task_1:
 
 
         print("signal generated succ!")
+
+    def DFT_signal(self, div=1, mul=1):
+        sig = copy.deepcopy(self.stack[len(self.stack)-1])
+        N = len(sig.Y)
+        if div !=1:
+            div = N
+
+        result = []
+        for k in range(0,N):
+            result.append(0)
+            for n in range(0,N):
+                tmp = sig.Y[n] #x(n)
+                angle = (2*180*k*n)/N
+                angle = math.radians(angle)
+                tmp = tmp*(math.cos(angle)+mul*(math.sin(angle)*1j))
+                result[len(result)-1] += tmp
+
+            result[k] = result[k]/div
+
+        if div == 1:
+            ampl = []
+            phase =[]
+
+            for comp in result:
+                ampl.append(abs(comp))
+                phase.append(math.atan2(comp.imag,comp.real))
+
+            Fs = float(self.FreqDFT_entry.get())
+            omega = (2*math.pi) / (N*Fs)
+            self.plot_signals()
+            # self.plot_signals()
+
+            # self.debug(ampl)
+            # self.debug(phase)
+        else:
+            self.debug(result)
+    def debug(self, lst):
+        for i in lst:
+            print (i)
+
+
+
+
 if __name__ == "__main__":
     root = tk.Tk()
     root.title("Signal Generator")
