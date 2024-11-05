@@ -26,9 +26,17 @@ class FileHandling:
             X = []
             Y = []
             for i in range(3, len(lines)):
-                x, y = re.split(r",\s*",lines[i].strip())
-                X.append(float(x.rstrip("f")))
-                Y.append(float(y.rstrip("f")))
+                parts = re.split(r"[, \s]+", lines[i].strip())  # Split on comma or whitespace
+                #print(parts)
+                # Remove 'f' and convert to floats if both parts are found
+                if len(parts) == 2:
+                    x = float(parts[0].replace('f', ''))
+                    y = float(parts[1].replace('f', ''))
+                    #print(f"x: {x}, y: {y}")
+                else:
+                    print(f"Line does not contain two valid values")
+                X.append(float(x))
+                Y.append(float(y))
 
             signal_tmp = Signal(X, Y)
             return signal_tmp
@@ -470,7 +478,7 @@ class Task_1:
         elif option == 'DFT':
             self.DFT_signal()
         elif option == 'IDFT':
-            self.DFT_signal(0,-1)
+            self.DFT_signal(0,1)
         else:
             messagebox.showinfo("Option Error", "The seleceted option is undefined!")
 
@@ -696,41 +704,91 @@ class Task_1:
 
         print("signal generated succ!")
 
-    def DFT_signal(self, div=1, mul=1):
+
+    def convert_from_polar(self,sig):
+        tmpX = []
+        tmpY = []
+
+        for i in range(len(sig.X)):
+            tmpY.append(round(sig.X[i]*math.sin(sig.Y[i]),13))
+            tmpX.append(round(sig.X[i]*math.cos(sig.Y[i]),13))
+
+        sig = Signal(tmpX,tmpY)
+        return sig
+    #[0j, (1.1102230246251565e-15+6.000103061172299j),
+
+
+    def DFT_signal(self, div=1, mul=-1):
         sig = copy.deepcopy(self.stack[len(self.stack)-1])
         N = len(sig.Y)
         if div !=1:
             div = N
+            sig = self.convert_from_polar(sig)
+            #print(sig.X)
+            #print(sig.Y)
+
 
         result = []
-        for k in range(0,N):
-            result.append(0)
-            for n in range(0,N):
-                tmp = sig.Y[n] #x(n)
-                angle = (2*180*k*n)/N
-                angle = math.radians(angle)
-                tmp = tmp*(math.cos(angle)+mul*(math.sin(angle)*1j))
-                result[len(result)-1] += tmp
 
-            result[k] = result[k]/div
+        if mul == -1:
+            for k in range(0,N):
+                result.append(0)
+                for n in range(0,N):
+                    tmp =  sig.Y[n] #x(n)
+                    angle = (2*180*k*n)/N
+                    angle = math.radians(angle)
+                    tmp = tmp*(math.cos(angle)+mul*(math.sin(angle)*1j))
+                    result[len(result)-1] += tmp
+
+                result[k] = result[k]/div
+        else:
+            for n in range(0,N):
+                result.append(0)
+                for k in range(0,N):
+                    tmp = sig.X[k] + sig.Y[k]*1j #x(n)
+                    #print(sig.X[k],sig.Y[k],tmp)
+                    #print(tmp)
+                    angle = (2*180*k*n)/N
+                    angle = math.radians(angle)
+                    tmp = tmp*(math.cos(angle)+mul*(math.sin(angle)*1j))
+                    result[len(result)-1] += tmp
+
+                result[n] = result[n]/div
 
         if div == 1:
             ampl = []
             phase =[]
 
+
             for comp in result:
                 ampl.append(abs(comp))
+                #print(comp.real,comp.imag)
                 phase.append(math.atan2(comp.imag,comp.real))
 
+            for i in range(0,N):
+                print(ampl[i],phase[i])
+
             Fs = float(self.FreqDFT_entry.get())
-            omega = (2*math.pi) / (N*Fs)
-            self.plot_signals()
-            # self.plot_signals()
+            omega = (2*math.pi*Fs) / (N)
+
+            X = []
+            for i in range(0,len(ampl)):
+                X.append((i+1)*omega)
+
+            self.plot_signals(X,ampl,"Time vs ampl")
+            self.plot_signals(X,phase,"Time vs phase")
+
 
             # self.debug(ampl)
             # self.debug(phase)
         else:
-            self.debug(result)
+            idx = 0
+            for n in result:
+                print(idx , round(n.real))
+                idx = idx+ 1
+
+
+
     def debug(self, lst):
         for i in lst:
             print (i)
