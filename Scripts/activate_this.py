@@ -1,4 +1,5 @@
 import math
+import os
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from typing import List
@@ -55,7 +56,7 @@ class Task_1:
         self.stack: List[Signal([],[])] = []  # stack of signals
         self.last_signal = Signal([], [])
         self.current_mode = "signal"
-
+        self.output_id = 0
         self.RGB = ['red','green','blue','yellow']
         self.rgb_idx = 0
 
@@ -249,7 +250,21 @@ class Task_1:
                                                  fg='darkblue')
         self.signal_processing_options_combobox = ttk.Combobox(self.root,
                                                               values=['add', 'sub', 'multiply', 'square', 'accumulate',
-                                                                      'normalize','DFT','IDFT'])
+                                                                      'normalize','DFT','IDFT','DCT'])
+
+        # Time domain parts
+        self.time_domain_options_label = tk.Label(self.root, text="Signal processing options:", bg='lightblue',
+                                                 fg='darkblue')
+        self.time_domain_options_combobox = ttk.Combobox(self.root,
+                                                              values=['sharp','shift','fold','fold and shift'
+                                                                    ])
+        self.time_domain_options_combobox.bind("<<ComboboxSelected>>", self.on_time_domain_change)
+        self.time_domain_options_combobox.set('sharp')
+        self.shift_entry = tk.Entry(self.root)
+        self.shift_entry.insert(0,"0")
+
+
+        ############################
         self.signal_processing_options_combobox.bind("<<ComboboxSelected>>", self.on_processing_options_change)
 
         self.signal_processing_options_combobox.set('square')
@@ -259,9 +274,13 @@ class Task_1:
 
         self.FreqDFT_entry = tk.Entry(self.root)
         self.FreqDFT_entry.insert(0, "0.0")
+        self.save_in_file_butt = tk.Button(self.root, text="save in file", command=self.save_in_file, bg='skyblue',
+                                         fg='black')
+        self.saved_signal_len_entry = tk.Entry(self.root)
+        self.saved_signal_len_entry.insert(0,"0")
 
         self.signal_to_draw_label = tk.Label(self.root, text="Signal to draw:", bg='lightblue', fg='darkblue')
-        self.signal_to_draw_combobox = ttk.Combobox(self.root, values=['signal', 'sincos signal', 'processed signal','Quantize'])
+        self.signal_to_draw_combobox = ttk.Combobox(self.root, values=['signal', 'sincos signal', 'processed signal','Quantize','Time Domain'])
         self.signal_to_draw_combobox.bind("<<ComboboxSelected>>", self.on_to_draw_combo_change)
 
         self.signal_to_draw_combobox.set('signal')
@@ -280,10 +299,42 @@ class Task_1:
         self.show_single_mode()
 
 
+    def on_time_domain_change(self,event):
+        selected_value = self.signal_processing_options_combobox.get()
+        if selected_value == 'sharp':
+            self.shift_entry.pack_forget()
+        elif selected_value == 'fold':
+            self.shift_entry.pack_forget()
+        else:
+            self.shift_entry.pack(pady=5)
+    def save_in_file(self):
+        self.output_id = self.output_id + 1
+        N = int(self.saved_signal_len_entry.get())
+        X = self.last_signal.X
+        Y = self.last_signal.Y
+
+        if N > len(X):
+            messagebox.showinfo("Error", "Your desired size is not available in output signal!")
+            return
+
+        # Ensure the directory exists
+        directory = os.path.join("saved_files")  # Use os.path.join for platform compatibility
+        if not os.path.exists(directory):
+            os.makedirs(directory)  # Create the directory if it doesn't exist
+
+        file_path = os.path.join(directory, f"output_{self.output_id}.txt")  # Using f-string for path construction
+
+        with open(file_path, 'w') as file:
+            for i in range(N):
+                file.write(f"{X[i]}  {Y[i]}\n")  # Add a newline for proper formatting
+
+        print(os.path.abspath(file_path))
+
+
     def on_processing_options_change(self,event):
         # Get the selected value
         selected_value = self.signal_processing_options_combobox.get()
-        # ['add', 'sub', 'multiply', 'square', 'accumulate', 'normalize']
+        # ['add', 'sub', 'multiply', 'square', 'accumulate', 'normalize','DCT']
         if selected_value == 'multiply':
             self.multiplication_entry.pack(pady=2)
         else:
@@ -314,6 +365,8 @@ class Task_1:
         self.max_value_norm_Entry.pack_forget()
         self.min_value_norm_Entry.pack_forget()
         self.min_value_norm_abel.pack_forget()
+        self.saved_signal_len_entry.pack_forget()
+        self.save_in_file_butt.pack_forget()
 
         self.signal_processing_options_label.pack_forget()
         self.signal_processing_options_combobox.pack_forget()
@@ -368,15 +421,35 @@ class Task_1:
         self.signal_to_draw_combobox.pack(pady=5)
 
     def show_process_signal_mode(self):
+
         self.compare_button.pack(pady=5)
 
         self.load_button.pack(pady=5)
         self.clear_button.pack(pady=5)
         self.generate_button.pack(pady=5)
+        self.saved_signal_len_entry.pack(pady=5)
+        self.save_in_file_butt.pack(pady=5)
         self.signal_to_draw_label.pack(pady=5)
         self.signal_to_draw_combobox.pack(pady=5)
         self.signal_processing_options_label.pack(pady=5)
         self.signal_processing_options_combobox.pack(pady=5)
+
+    def Time_Domain_Mode(self):
+        self.hide_all_mode()
+        self.show_time_domain_mode()
+
+    def show_time_domain_mode(self):
+        self.compare_button.pack(pady=5)
+
+        self.load_button.pack(pady=5)
+        self.clear_button.pack(pady=5)
+        self.generate_button.pack(pady=5)
+        self.saved_signal_len_entry.pack(pady=5)
+        self.save_in_file_butt.pack(pady=5)
+        self.signal_to_draw_label.pack(pady=5)
+        self.signal_to_draw_combobox.pack(pady=5)
+        self.time_domain_options_label.pack(pady=5)
+        self.time_domain_options_combobox.pack(pady=5)
 
     def process_signal_mode(self):
         self.hide_all_mode()
@@ -412,6 +485,9 @@ class Task_1:
         elif selected_value == 'Quantize':
             self.quantize_mode()
             self.current_mode = 'Quantize'
+        elif selected_value == 'Time Domain':
+            self.Time_Domain_Mode()
+            self.current_mode = 'Time Domain'
         else:
             print("error")
 
@@ -479,6 +555,8 @@ class Task_1:
             self.DFT_signal()
         elif option == 'IDFT':
             self.DFT_signal(0,1)
+        elif option == 'DCT':
+            self.DCT_signal()
         else:
             messagebox.showinfo("Option Error", "The seleceted option is undefined!")
 
@@ -591,6 +669,8 @@ class Task_1:
             self.process_signal_generator()
         elif self.current_mode=='Quantize':
             self.Quantize_signal_generator()
+        elif self.current_mode =='Time Domain':
+            self.Time_Domain_signal_generator()
         else:
             messagebox.showinfo("Error","chosen mode is undifiend")
 
@@ -793,8 +873,77 @@ class Task_1:
         for i in lst:
             print (i)
 
+    def DCT_signal(self):
+        if len(self.stack)==0:
+            messagebox.showinfo("Low resources","Please load enough signals!")
+            return
+
+        sig = copy.deepcopy(self.stack[len(self.stack)-1])
+
+        N = len(sig.Y)
+        Y = []
+        for k in range(N ):  # k ranges from 1 to N
+            coeff = 0
+            for n in range(N):  # n ranges from 1 to N
+                coeff += sig.Y[n] * np.cos((np.pi / (4 * N)) * (2 * n - 1) * (2 * k - 1))
+            coeff *= math.sqrt(2 / N)  # Multiply by sqrt(2/N)
+            Y.append(coeff)
+
+        sig.Y = copy.deepcopy(Y)
+        self.last_signal = copy.deepcopy(sig)
+        print(Y)
+        self.plot_signals(sig.X,sig.Y,"DCT Signal")
+
+    def Time_Domain_signal_generator(self):
+        option = self.time_domain_options_combobox.get()
+        if option == 'sharp':
+            self.sharp_signal_generator()
+        elif option =='fold':
+            self.fold_signal_generator()
+        elif option == 'shift':
+            self.shift_signal_generator()
+        elif option == 'fold and shift':
+            self.fold_and_shift_generator()
+        else:
+            print("error in Time_Domain_signal_generator method!!")
 
 
+    # def fold_signal(self):
+    #     folded_x = [-value for value in reversed(x)]
+    #     folded_y = list(reversed(y))
+    #
+    #     return folded_x, folded_y
+    def sharp_signal_generator(self):
+        pass
+
+    def fold_signal_generator(self): # reverse y
+        pass
+
+    def shift_signal_generator(self): # x[i] = x[i] + shft
+        shftamt = int(self.shift_entry.get())
+
+    def fold_and_shift_generator(self):
+        pass
+
+    # """
+    # def multiply_signal_by_factor(self):
+    #     if len(self.stack)==0:
+    #         messagebox.showinfo("Low resources","Please load enough signals!")
+    #         return
+    #
+    #     sig = copy.deepcopy(self.stack[len(self.stack)-1])
+    #
+    #     factor = float(self.multiplication_entry.get())
+    #
+    #     sig.Y = [x * factor for x in sig.Y]
+    #
+    #     self.last_signal = copy.deepcopy(sig)
+    #
+    #     self.plot_signals(sig.X,sig.Y,"Multiplied signal")
+    #
+    #     # print(len(self.last_signal.X))
+    #
+    # """
 
 if __name__ == "__main__":
     root = tk.Tk()
