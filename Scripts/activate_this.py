@@ -47,7 +47,9 @@ class Signal:
     def __init__(self, x, y):
         self.X = x
         self.Y = y
-
+    def clear(self):
+        self.X = []
+        self.Y = []
 
 class Task_1:
     def __init__(self, root):
@@ -59,6 +61,9 @@ class Task_1:
         self.output_id = 0
         self.RGB = ['red','green','blue','yellow']
         self.rgb_idx = 0
+        self.first_der = Signal([],[])
+        self.second_der = Signal([],[])
+        self.is_derevative = 0
 
     def QuantizationTest2(self,file_name,Your_IntervalIndices,Your_EncodedValues,Your_QuantizedValues,Your_SampledError):
         expectedIntervalIndices=[]
@@ -190,6 +195,14 @@ class Task_1:
         if len(expected_samples) != len(samples):
             print("Test case failed, your signal have different length from the expected one")
             return
+
+        for i in range(len(expected_indices)):
+            if abs(indices[i] - expected_indices[i]) < 0.01:
+                continue
+            else:
+                print("Test case failed, your signal have different samples from the expected one")
+                return
+
         for i in range(len(expected_samples)):
             if abs(samples[i] - expected_samples[i]) < 0.01:
                 continue
@@ -300,7 +313,8 @@ class Task_1:
 
 
     def on_time_domain_change(self,event):
-        selected_value = self.signal_processing_options_combobox.get()
+        selected_value = self.time_domain_options_combobox.get()
+        print(selected_value)
         if selected_value == 'sharp':
             self.shift_entry.pack_forget()
         elif selected_value == 'fold':
@@ -367,6 +381,8 @@ class Task_1:
         self.min_value_norm_abel.pack_forget()
         self.saved_signal_len_entry.pack_forget()
         self.save_in_file_butt.pack_forget()
+        self.shift_entry.pack_forget()
+        self.time_domain_options_combobox.pack_forget()
 
         self.signal_processing_options_label.pack_forget()
         self.signal_processing_options_combobox.pack_forget()
@@ -682,6 +698,11 @@ class Task_1:
                 self.QuantizationTest1(compare_path,self.encoded_signal,self.quantized_signal)
             else:
                 self.QuantizationTest2(compare_path,self.intervals,self.encoded_signal,self.quantized_signal,self.quantization_error)
+        elif self.is_derevative == 1:
+            self.SignalSamplesAreEqual(compare_path,self.first_der.X,self.first_der.Y)
+            compare_path = self.navigate_file()
+            self.SignalSamplesAreEqual(compare_path,self.second_der.X,self.second_der.Y)
+            self.is_derevative = 0
         else:
             self.SignalSamplesAreEqual(compare_path, self.last_signal.X, self.last_signal.Y)
 
@@ -696,7 +717,7 @@ class Task_1:
         plot_signal = []
         t = np.linspace(0, 1, len(n), endpoint=False)  # Time for continuous plot
         plot_t = []
-        mn = min(len(n), 200)  # Limit the plot to the first 200 samples (for large signals)
+        mn = min(len(signal), 200)  # Limit the plot to the first 200 samples (for large signals)
 
         # Prepare the data to plot
         for i in range(mn):
@@ -888,10 +909,11 @@ class Task_1:
                 coeff += sig.Y[n] * np.cos((np.pi / (4 * N)) * (2 * n - 1) * (2 * k - 1))
             coeff *= math.sqrt(2 / N)  # Multiply by sqrt(2/N)
             Y.append(coeff)
+            sig.X[k] = 0
 
         sig.Y = copy.deepcopy(Y)
         self.last_signal = copy.deepcopy(sig)
-        print(Y)
+        #print(Y)
         self.plot_signals(sig.X,sig.Y,"DCT Signal")
 
     def Time_Domain_signal_generator(self):
@@ -908,42 +930,112 @@ class Task_1:
             print("error in Time_Domain_signal_generator method!!")
 
 
-    # def fold_signal(self):
-    #     folded_x = [-value for value in reversed(x)]
-    #     folded_y = list(reversed(y))
-    #
-    #     return folded_x, folded_y
     def sharp_signal_generator(self):
-        pass
+     self.is_derevative = 1
+     if len(self.stack) == 0:
+        messagebox.showinfo("Low resources", "Please load enough signals!")
+        return
 
-    def fold_signal_generator(self): # reverse y
-        pass
+     sig = copy.deepcopy(self.stack[-1])
 
-    def shift_signal_generator(self): # x[i] = x[i] + shft
-        shftamt = int(self.shift_entry.get())
+     self.first_der.clear()
+     self.second_der.clear()
+
+     for i in range(1,len(sig.Y)):
+         self.first_der.Y.append(sig.Y[i]- sig.Y[i-1])
+         self.first_der.X.append(sig.X[i])
+
+     for i in range(1,len(sig.Y)-1):
+         self.second_der.Y.append(sig.Y[i+1]- 2*sig.Y[i]+sig.Y[i-1])
+         self.second_der.X.append(sig.X[i])
+
+
+     self.last_signal = copy.deepcopy(sig)
+
+     self.plot_signals(self.first_der.X, self.first_der.Y, "First Derivative Signal")
+     self.plot_signals(self.second_der.X, self.second_der.Y, "Second Derivative Signal")
+
+
+
+    def fold_signal_generator(self):
+     if len(self.stack) == 0:
+        messagebox.showinfo("Low resources", "Please load enough signals!")
+        return
+
+     sig = copy.deepcopy(self.stack[-1])
+
+     n = len(sig.Y)
+     folded_Y = [0] * n
+     for i in range(n):
+        folded_Y[i] = sig.Y[n - i - 1]
+
+
+     sig.Y = copy.deepcopy(folded_Y)
+     ##sig.X = folded_X
+     self.last_signal = copy.deepcopy(sig)
+     #print(folded_Y)
+     self.plot_signals(sig.X, sig.Y, "Folded Signal")
+
+
+
+
+
+
+    def shift_signal_generator(self):
+
+     if len(self.stack) == 0:
+        messagebox.showinfo("Low resources", "Please load enough signals!")
+        return
+
+
+     shftamt = int(self.shift_entry.get())
+
+
+     sig = copy.deepcopy(self.stack[-1])
+
+
+     shifted_X = [0] * len(sig.X)
+     for i in range(len(sig.X)):
+        shifted_X[i] = sig.X[i] + shftamt
+
+
+     sig.X = copy.deepcopy(shifted_X)
+     self.last_signal = copy.deepcopy(sig)
+
+     self.plot_signals(sig.X, sig.Y, "Shifted Signal")
+
+
+
+
 
     def fold_and_shift_generator(self):
-        pass
+     shftamt = int(self.shift_entry.get())
+     if len(self.stack) == 0:
+        messagebox.showinfo("Low resources", "Please load enough signals!")
+        return
 
-    # """
-    # def multiply_signal_by_factor(self):
-    #     if len(self.stack)==0:
-    #         messagebox.showinfo("Low resources","Please load enough signals!")
-    #         return
-    #
-    #     sig = copy.deepcopy(self.stack[len(self.stack)-1])
-    #
-    #     factor = float(self.multiplication_entry.get())
-    #
-    #     sig.Y = [x * factor for x in sig.Y]
-    #
-    #     self.last_signal = copy.deepcopy(sig)
-    #
-    #     self.plot_signals(sig.X,sig.Y,"Multiplied signal")
-    #
-    #     # print(len(self.last_signal.X))
-    #
-    # """
+     sig = copy.deepcopy(self.stack[-1])
+
+     n = len(sig.Y)
+     folded_Y = [0] * n
+     for i in range(n):
+        folded_Y[i] = sig.Y[n - i - 1]
+
+     sig.Y = copy.deepcopy(folded_Y)
+
+     shifted_X = [0] * len(sig.X)
+     for i in range(len(sig.X)):
+        shifted_X[i] = sig.X[i] + shftamt
+
+
+     sig.X = copy.deepcopy(shifted_X)
+
+     self.last_signal = copy.deepcopy(sig)
+
+     self.plot_signals(sig.X, sig.Y, "Folded and Shifted Signal")
+
+
+
 
 if __name__ == "__main__":
     root = tk.Tk()
