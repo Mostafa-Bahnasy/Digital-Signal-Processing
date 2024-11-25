@@ -171,6 +171,8 @@ class Task_1:
         print("QuantizationTest1 Test case passed successfully")
 
     def SignalSamplesAreEqual(self, file_name, indices, samples):
+        print(file_name)
+
         expected_indices = []
         expected_samples = []
         with open(file_name, 'r') as f:
@@ -263,13 +265,14 @@ class Task_1:
                                                  fg='darkblue')
         self.signal_processing_options_combobox = ttk.Combobox(self.root,
                                                               values=['add', 'sub', 'multiply', 'square', 'accumulate',
-                                                                      'normalize','DFT','IDFT','DCT'])
+                                                                      'normalize','DFT','IDFT','DCT','Move Avg','remove DC','convolution',
+                                                                      'norm cross correlation'])
 
         # Time domain parts
         self.time_domain_options_label = tk.Label(self.root, text="Signal processing options:", bg='lightblue',
                                                  fg='darkblue')
         self.time_domain_options_combobox = ttk.Combobox(self.root,
-                                                              values=['sharp','shift','fold','fold and shift'
+                                                              values=['sharp','shift','fold','fold and shift','remove DC'
                                                                     ])
         self.time_domain_options_combobox.bind("<<ComboboxSelected>>", self.on_time_domain_change)
         self.time_domain_options_combobox.set('sharp')
@@ -315,12 +318,10 @@ class Task_1:
     def on_time_domain_change(self,event):
         selected_value = self.time_domain_options_combobox.get()
         print(selected_value)
-        if selected_value == 'sharp':
-            self.shift_entry.pack_forget()
-        elif selected_value == 'fold':
-            self.shift_entry.pack_forget()
-        else:
+        if selected_value == 'shift' or selected_value == 'fold and shift':
             self.shift_entry.pack(pady=5)
+        else:
+            self.shift_entry.pack_forget()
     def save_in_file(self):
         self.output_id = self.output_id + 1
         N = int(self.saved_signal_len_entry.get())
@@ -349,7 +350,7 @@ class Task_1:
         # Get the selected value
         selected_value = self.signal_processing_options_combobox.get()
         # ['add', 'sub', 'multiply', 'square', 'accumulate', 'normalize','DCT']
-        if selected_value == 'multiply':
+        if selected_value == 'multiply' or selected_value == 'Move Avg':
             self.multiplication_entry.pack(pady=2)
         else:
             self.multiplication_entry.pack_forget()
@@ -363,7 +364,7 @@ class Task_1:
                 self.min_value_norm_Entry.pack_forget()
                 self.max_value_norm_abel.pack_forget()
                 self.max_value_norm_Entry.pack_forget()
-                if selected_value =='DFT':
+                if selected_value =='DFT' or selected_value =='remove DC':
                     self.FreqDFT_entry.pack(pady=5)
                 else:
                     self.FreqDFT_entry.pack_forget()
@@ -573,8 +574,148 @@ class Task_1:
             self.DFT_signal(0,1)
         elif option == 'DCT':
             self.DCT_signal()
+        elif option =='Move Avg':
+            self.move_avg_signal()
+        elif option == 'remove DC':
+            self.remove_DC_freq()
+        elif option == 'convolution':
+            self.convlute_signal()
+        elif option == 'norm cross correlation':
+            self.norm_cross_correlation_signal()
         else:
             messagebox.showinfo("Option Error", "The seleceted option is undefined!")
+
+
+    def compute_cross_correlation(self,x1, x2):
+        N = len(x1)
+        results = []
+
+        for n in range(N):
+            sum = 0
+            for j in range(N):
+                sum += x1[j]*x2[(j+n) % N]
+            results.append(((1/N)*sum))
+
+        return results
+
+    def compute_normalize_correlation(self,x1,x2,corr):
+        N = len(x1)
+        results = []
+        for n in range(N):
+            n1_sum = 0
+            n2_sum = 0
+            for j in range(N):
+                n1_sum += x1[j]**2
+                n2_sum += x2[j]**2
+            results.append(corr[n] / ((1/N)*math.sqrt(n1_sum*n2_sum)))
+
+        return results
+    def norm_cross_correlation_signal(self):
+        if len(self.stack) < 2:
+            messagebox.showinfo("Low resources","Please load enough signals!")
+            return
+
+        sig2 = copy.deepcopy(self.stack[len(self.stack)-1])
+        sig1 = copy.deepcopy(self.stack[len(self.stack)-2])
+
+        len1 = len(sig1.Y)
+        len2 = len(sig2.Y)
+        X =sig1.X
+        Y =[]
+        corr = self.compute_cross_correlation(sig1.Y,sig2.Y)
+        Y = self.compute_normalize_correlation(sig1.Y,sig2.Y,corr)
+
+
+
+        self.last_signal = copy.deepcopy(Signal(X,Y))
+        print(X)
+        print(Y)
+        self.plot_signals(X,Y,"Conv the signal")
+
+    def convlute_signal(self):
+        if len(self.stack) < 2:
+            messagebox.showinfo("Low resources","Please load enough signals!")
+            return
+
+        sig2 = copy.deepcopy(self.stack[len(self.stack)-1])
+        sig1 = copy.deepcopy(self.stack[len(self.stack)-2])
+
+        len1 = len(sig1.Y)
+        len2 = len(sig2.Y)
+
+        start_index = int(min(sig1.X) + min(sig2.X))
+        end_index = int(max(sig1.X) + max(sig2.X))
+
+        X = list(range(start_index, end_index + 1))
+        Y = []
+        for n in range(len1 + len2 - 1):
+            sum = 0
+            for m in range(min(n, len1 - 1) + 1):
+                if 0 <= n - m < len2:
+                    sum += sig1.Y[m] * sig2.Y[n - m]
+            Y.append(sum)
+
+        self.last_signal = copy.deepcopy(Signal(X,Y))
+        print(X)
+        print(Y)
+        self.plot_signals(X,Y,"Conv the signal")
+
+    def remove_DC_freq(self):
+        if len(self.stack)==0:
+            messagebox.showinfo("Low resources","Please load enough signals!")
+            return
+
+        sig = copy.deepcopy(self.stack[len(self.stack)-1])
+        sampling_rate = float(self.FreqDFT_entry.get())
+        frequencies = np.fft.fftfreq(len(sig.Y), d=1/sampling_rate)
+        dc_removed_signal = self.remove_dc_component(sig.Y, frequencies)
+        sig.Y = [round(x,3) for x in dc_removed_signal]
+
+        self.last_signal = copy.deepcopy(sig)
+        print(sig.Y)
+        self.plot_signals(sig.X,sig.Y,"remove DC Signal freq")
+
+    def remove_dc_component(self,signal, frequencies):
+        X = self.calculate_dft(signal)
+
+        # Identify the index corresponding to DC
+        dc_index = np.argmax(frequencies >= 0)
+
+        # Set the DC component to zero
+        X[dc_index] = 0
+
+        # Calculate inverse DFT to get the filtered signal
+        dc_removed_signal = self.calculate_idft(X)
+        return dc_removed_signal.real
+    def move_avg_signal(self):
+        if len(self.stack)==0:
+            messagebox.showinfo("Low resources","Please load enough signals!")
+            return
+
+        sig = copy.deepcopy(self.stack[len(self.stack)-1])
+
+        win = int(self.multiplication_entry.get())
+        if win>len(sig.Y):
+            messagebox.showinfo("invalid input","Please enter valid window size!")
+            return
+
+        sig.Y = list(itertools.accumulate(sig.Y))
+
+        X = []
+        Y = []
+
+        for i in range(0,len(sig.Y)-win+1):
+            X.append(sig.X[i])
+            if i!=0:
+                Y.append(round((sig.Y[i+win-1]-sig.Y[i-1])/win,3))
+            else:
+                Y.append(round(sig.Y[i+win-1]/win,3))
+        print(X)
+        print(Y)
+
+        self.last_signal = copy.deepcopy(Signal(X,Y))
+
+        self.plot_signals(X,Y,"Move Avg signal")
 
     def normalize_signal(self):
         # nwmin + (nwmax - nwmin) * ((val - oldmn) / (oldmx - oldmn))
@@ -888,7 +1029,30 @@ class Task_1:
                 print(idx , round(n.real))
                 idx = idx+ 1
 
+    def calculate_dft(self,signal):
+        N = len(signal)
+        X = np.zeros(N, dtype=complex)
+        for k in range(N):
+            X[k] = 0
+            for n in range(N):
+                X[k] += signal[n] * np.exp(-2j * np.pi * k * n / N)
+        return X
 
+    def calculate_idft(self,X):
+        N = len(X)
+        signal = np.zeros(N, dtype=complex)
+
+        for n in range(N):
+            signal[n] = 0
+            for k in range(N):
+                angle = 2 * np.pi * n * k / N
+                real_part = np.cos(angle)
+                imaginary_part = np.sin(angle)
+                signal[n] += (X[k].real * real_part) - (X[k].imag * imaginary_part)
+
+            signal[n] /= N
+
+        return np.asarray(signal, float)
 
     def debug(self, lst):
         for i in lst:
@@ -926,8 +1090,24 @@ class Task_1:
             self.shift_signal_generator()
         elif option == 'fold and shift':
             self.fold_and_shift_generator()
+        elif option =='remove DC':
+            self.remove_DC_time()
         else:
             print("error in Time_Domain_signal_generator method!!")
+
+    def remove_DC_time(self):
+        if len(self.stack)==0:
+            messagebox.showinfo("Low resources","Please load enough signals!")
+            return
+
+        sig = copy.deepcopy(self.stack[len(self.stack)-1])
+        mean_value = round(sum(sig.Y)/len(sig.Y),3)
+        sig.Y = [round(x - mean_value,3) for x in sig.Y]
+        self.last_signal = copy.deepcopy(sig)
+        print(sig.Y)
+        self.plot_signals(sig.X,sig.Y,"Remove DC Time Signal")
+
+
 
 
     def sharp_signal_generator(self):
