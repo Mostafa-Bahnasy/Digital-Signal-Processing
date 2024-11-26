@@ -199,9 +199,8 @@ class Task_1:
             return
 
         for i in range(len(expected_indices)):
-            if abs(indices[i] - expected_indices[i]) < 0.01:
-                continue
-            else:
+            if (indices[i] != expected_indices[i]):
+
                 print("Test case failed, your signal have different samples from the expected one")
                 return
 
@@ -349,25 +348,27 @@ class Task_1:
     def on_processing_options_change(self,event):
         # Get the selected value
         selected_value = self.signal_processing_options_combobox.get()
+        self.min_value_norm_abel.pack_forget()
+        self.min_value_norm_Entry.pack_forget()
+        self.max_value_norm_abel.pack_forget()
+        self.max_value_norm_Entry.pack_forget()
+        self.multiplication_entry.pack_forget()
+        self.FreqDFT_entry.pack_forget()
+
         # ['add', 'sub', 'multiply', 'square', 'accumulate', 'normalize','DCT']
         if selected_value == 'multiply' or selected_value == 'Move Avg':
             self.multiplication_entry.pack(pady=2)
         else:
-            self.multiplication_entry.pack_forget()
             if selected_value == 'normalize':
                 self.min_value_norm_abel.pack(pady=5)
                 self.min_value_norm_Entry.pack(pady=2)
                 self.max_value_norm_abel.pack(pady=5)
                 self.max_value_norm_Entry.pack(pady=2)
             else:
-                self.min_value_norm_abel.pack_forget()
-                self.min_value_norm_Entry.pack_forget()
-                self.max_value_norm_abel.pack_forget()
-                self.max_value_norm_Entry.pack_forget()
+
                 if selected_value =='DFT' or selected_value =='remove DC':
                     self.FreqDFT_entry.pack(pady=5)
-                else:
-                    self.FreqDFT_entry.pack_forget()
+
 
     def hide_all_mode(self):
         self.load_button.pack_forget()
