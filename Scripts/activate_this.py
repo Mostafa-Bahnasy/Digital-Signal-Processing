@@ -271,13 +271,44 @@ class Task_1:
         self.time_domain_options_label = tk.Label(self.root, text="Signal processing options:", bg='lightblue',
                                                  fg='darkblue')
         self.time_domain_options_combobox = ttk.Combobox(self.root,
-                                                              values=['sharp','shift','fold','fold and shift','remove DC'
-                                                                    ])
+                                                              values=['sharp','shift','fold','fold and shift','remove DC',
+                                                                     'filter','resample'])
         self.time_domain_options_combobox.bind("<<ComboboxSelected>>", self.on_time_domain_change)
         self.time_domain_options_combobox.set('sharp')
         self.shift_entry = tk.Entry(self.root)
         self.shift_entry.insert(0,"0")
 
+        #filter stuff
+        self.time_domain_filter_combobox = ttk.Combobox(self.root,
+                                                              values=['Low pass','High pass','Band pass','Band stop'
+                                                                     ])
+        self.time_domain_filter_combobox.set('low pass')
+        self.load_spec_butt = tk.Button(self.root, text="Load Spec", command=self.Load_spec_file, bg='skyblue',fg='black')
+
+        self.stop_band_att_label = tk.Label(self.root, text="stop band att:", bg='lightblue', fg='darkblue')
+        self.stop_band_att_entry = tk.Entry(self.root)
+        self.stop_band_att_entry.insert(0,"0")
+
+        self.FC1_label = tk.Label(self.root, text="FC_1:", bg='lightblue', fg='darkblue')
+        self.FC1_entry = tk.Entry(self.root)
+        self.FC1_entry.insert(0,"0")
+
+        self.FC2_label = tk.Label(self.root, text="FC_2:", bg='lightblue', fg='darkblue')
+        self.FC2_entry = tk.Entry(self.root)
+        self.FC2_entry.insert(0,"0")
+
+        self.trans_band_label = tk.Label(self.root, text="trans_band:", bg='lightblue', fg='darkblue')
+        self.trans_band_entry = tk.Entry(self.root)
+        self.trans_band_entry.insert(0,"0")
+
+        # resampling stuff
+        self.interpolate_L_label = tk.Label(self.root, text="Interpolation factor L:", bg='lightblue', fg='darkblue')
+        self.interpolate_L_entry = tk.Entry(self.root)
+        self.interpolate_L_entry.insert(0,"0")
+
+        self.decimation_M_label = tk.Label(self.root, text="Decimation factor M:", bg='lightblue', fg='darkblue')
+        self.decimation_M_entry = tk.Entry(self.root)
+        self.decimation_M_entry.insert(0,"0")
 
         ############################
         self.signal_processing_options_combobox.bind("<<ComboboxSelected>>", self.on_processing_options_change)
@@ -313,14 +344,90 @@ class Task_1:
 
         self.show_single_mode()
 
+    def insert_entry(self,obj,value):
+        obj.delete(0, tk.END)
+        obj.insert(0, value)
 
+    def pack_forget_all_time_domain(self):
+        self.shift_entry.pack_forget()
+        self.time_domain_filter_combobox.pack_forget()
+        self.sampling_freq_label.pack_forget()
+        self.sampling_freq_entry.pack_forget()
+        self.stop_band_att_label.pack_forget()
+        self.sampling_freq_entry.pack_forget()
+        self.FC1_label.pack_forget()
+        self.FC1_entry.pack_forget()
+        self.FC2_label.pack_forget()
+        self.FC2_entry.pack_forget()
+        self.trans_band_label.pack_forget()
+        self.trans_band_entry.pack_forget()
+        self.load_spec_butt.pack_forget()
+
+        self.decimation_M_label.pack_forget()
+        self.decimation_M_entry.pack_forget()
+        self.interpolate_L_label.pack_forget()
+        self.interpolate_L_entry.pack_forget()
+    def read_filter_specifications_from_file(self,filename):
+        with open(filename, 'r') as file:
+            lines = file.readlines()
+
+        filter_specs = {}
+        for line in lines:
+            key, value = line.strip().split('=')
+            filter_specs[key.strip()] = value.strip()
+
+        return filter_specs
+    def Load_spec_file(self):
+        file_path = filedialog.askopenfilename(filetypes=[("Text files", "*.txt")])
+        if file_path:
+            filter_specs = self.read_filter_specifications_from_file(file_path)
+            self.time_domain_filter_combobox.set(filter_specs['FilterType'])
+            self.insert_entry(self.sampling_freq_entry,(filter_specs['FS']))
+            self.insert_entry(self.stop_band_att_entry,(filter_specs['StopBandAttenuation']))
+            self.insert_entry(self.trans_band_entry,(filter_specs['TransitionBand']))
+
+            # Update for Band pass and Band stop cases
+            if filter_specs['FilterType'] in ['Band pass', 'Band stop']:
+                self.insert_entry(self.FC2_entry,(filter_specs['F2']))
+                self.insert_entry(self.FC1_entry,(filter_specs['F1']))
+
+            else:
+                self.insert_entry(self.FC1_entry,(filter_specs['FC']))
     def on_time_domain_change(self,event):
         selected_value = self.time_domain_options_combobox.get()
         print(selected_value)
+        self.pack_forget_all_time_domain()
         if selected_value == 'shift' or selected_value == 'fold and shift':
             self.shift_entry.pack(pady=5)
         else:
-            self.shift_entry.pack_forget()
+            #self.shift_entry.pack_forget()
+            if selected_value=='filter' or selected_value =='resample':
+                self.time_domain_filter_combobox.pack()
+                self.load_spec_butt.pack()
+                self.sampling_freq_label.pack(pady=1)
+                self.sampling_freq_entry.pack(pady=1)
+                self.stop_band_att_label.pack(pady=1)
+                self.stop_band_att_entry.pack(pady=1)
+                self.sampling_freq_entry.pack(pady=1)
+                self.FC1_label.pack(pady=1)
+                self.FC1_entry.pack(pady=1)
+                self.FC2_label.pack(pady=1)
+                self.FC2_entry.pack(pady=1)
+                self.trans_band_label.pack(pady=1)
+                self.trans_band_entry.pack(pady=1)
+                if selected_value == 'resample':
+                    self.decimation_M_label.pack()
+                    self.decimation_M_entry.pack()
+                    self.interpolate_L_label.pack()
+                    self.interpolate_L_entry.pack()
+            else:
+                messagebox.showinfo("ERROR","invalid choice in time domain combo box!")
+
+
+
+
+
+
     def save_in_file(self):
         self.output_id = self.output_id + 1
         N = int(self.saved_signal_len_entry.get())
@@ -1093,8 +1200,253 @@ class Task_1:
             self.fold_and_shift_generator()
         elif option =='remove DC':
             self.remove_DC_time()
+        elif option =='filter':
+            self.fir_filter_generator()
+        elif option=='resample':
+            self.resample_generator()
         else:
             print("error in Time_Domain_signal_generator method!!")
+
+    def upsample(self,signal, factor):
+        result = []
+        for element in signal:
+            result.extend([element] + [0] * (factor-1))
+        for i in range(factor-1):
+            result.pop()
+        # print (result)
+        return result
+    def resample_signal(self,input_x, input_y, M, L, filter_type, fs, stop_band_attenuation, transition_band,f1,f2 = None):
+        print(M,L)
+        if M == 0 and L != 0:
+            # Upsample by inserting L-1 zeros between each sample
+            upsampled_signal = self.upsample(input_y, L)
+            upsampled_x = self.upsample(input_x, L)
+            upsampled_x = list(range(min(upsampled_x), min(upsampled_x) + len(upsampled_x)))
+            print(upsampled_signal)
+            filtered_x = []
+            filtered_y = []
+            if f2 == None:
+                filtered_x, filtered_y = self.init_fir_filter(filter_type, fs, stop_band_attenuation, transition_band,f1)
+            else:
+                filtered_x, filtered_y = self.init_fir_filter(filter_type, fs, stop_band_attenuation, transition_band,f1,f2)
+
+            return self.calc_convolution(upsampled_x, upsampled_signal, filtered_x, filtered_y)
+
+        elif M != 0 and L == 0:
+            # Downsample by taking every Mth sample
+            filtered_x = []
+            filtered_y = []
+            if f2 == None:
+                filtered_x, filtered_y = self.init_fir_filter(filter_type, fs, stop_band_attenuation, transition_band,f1)
+            else:
+                filtered_x, filtered_y = self.init_fir_filter(filter_type, fs, stop_band_attenuation, transition_band,f1,f2)
+            output_x, output_y = self.calc_convolution(input_x, input_y, filtered_x, filtered_y)
+            output_x, output_y = output_x[::M], output_y[::M]
+
+            continuous_indices = list(range(min(output_x), min(output_x) + len(output_x)))
+
+            return continuous_indices, output_y
+
+
+        elif M != 0 and L != 0:
+            # Upsample, filter, and then downsample
+            upsampled_signal = self.upsample(input_y, L)
+            upsampled_x = self.upsample(input_x, L)
+            upsampled_x = list(range(min(upsampled_x), min(upsampled_x) + len(upsampled_x)))
+            filtered_x = []
+            filtered_y = []
+            if f2 == None:
+                filtered_x, filtered_y = self.init_fir_filter(filter_type, fs, stop_band_attenuation, transition_band,f1)
+            else:
+                filtered_x, filtered_y = self.init_fir_filter(filter_type, fs, stop_band_attenuation, transition_band,f1,f2)
+            filtered_signal_x, filtered_signal_y = self.calc_convolution(upsampled_x, upsampled_signal, filtered_x, filtered_y)
+            filtered_signal_x, filtered_signal_y = filtered_signal_x[::M], filtered_signal_y[::M]
+            print(filtered_signal_y)
+
+            continuous_indices = list(range(min(filtered_signal_x), min(filtered_signal_x) + len(filtered_signal_x)))
+
+            return continuous_indices, filtered_signal_y
+
+        else:
+            return messagebox.showerror("Invalid values for M and L")
+    def resample_generator(self):
+        filter_type = (self.time_domain_filter_combobox.get())
+        fs = float(self.sampling_freq_entry.get())
+        stop_band_attenuation = float(self.stop_band_att_entry.get())
+        f1 = float(self.FC1_entry.get())
+        if filter_type == "Band pass" or filter_type == "Band stop":
+            f2 = float(self.FC2_entry.get())
+        transition_band = float(self.trans_band_entry.get())
+        M = int(self.decimation_M_entry.get())
+        L = int(self.interpolate_L_entry.get())
+
+        if len(self.stack) ==0:
+            return messagebox.showerror("NO enough resources!")
+
+        sig = copy.deepcopy(self.stack[-1])
+        sig.X  = [int(x) for x in sig.X]
+        sig.Y  = [int(x) for x in sig.Y]
+
+        if filter_type == "Low pass" or filter_type == "High pass":
+            resample_res_x, resample_res_y  = self.resample_signal(sig.X, sig.Y, M, L, filter_type, fs, stop_band_attenuation, transition_band,f1)
+        else:
+            resample_res_x, resample_res_y  = self.resample_signal(sig.X, sig.Y, M, L, filter_type, fs, stop_band_attenuation, transition_band,f1,f2)
+
+        self.last_signal.X = copy.deepcopy(resample_res_x)
+        self.last_signal.Y = copy.deepcopy(resample_res_y)
+
+        self.plot_signals(resample_res_x,resample_res_y,"resampled signal")
+
+    def round_up_to_odd(self,number):
+        rounded_number = math.ceil(number)
+
+        if rounded_number % 2 == 0:
+            rounded_number += 1
+
+        return rounded_number
+
+
+    def window_function(self,stop_band_attenuation, n, N):
+        if stop_band_attenuation <= 21:     # Rectangular
+            return 1
+        elif stop_band_attenuation <= 44:   # Hanning
+            return 0.5 + (0.5 * np.cos((2 * np.pi * n) / N))
+        elif stop_band_attenuation <= 53:   # Hamming
+            return 0.54 + (0.46 * np.cos((2 * np.pi * n) / N))
+        elif stop_band_attenuation <= 74:   # Blackman
+            return 0.42 + (0.5 * np.cos(2 * np.pi * n / (N - 1))) + 0.08 * np.cos(4 * np.pi * n / (N - 1))
+    def init_fir_filter(self,filter_type, fs, stop_band_attenuation, transition_band, f1, f2=None):
+        delta_f = transition_band / fs
+        print(filter_type,fs,stop_band_attenuation,transition_band,f1)
+        N = 0
+        if stop_band_attenuation <= 21:     # Rectangular
+            N = self.round_up_to_odd(0.9/delta_f)
+        elif stop_band_attenuation <= 44:   # Hanning
+            N = self.round_up_to_odd(3.1/delta_f)
+        elif stop_band_attenuation <= 53:   # Hamming
+            N = self.round_up_to_odd(3.3/delta_f)
+        elif stop_band_attenuation <= 74:   # Blackman
+            N = self.round_up_to_odd(5.5/delta_f)
+
+        print(N)
+        # the list to hold the filter
+        h = []
+        # the x values
+        indices = range(-math.floor(N/2), math.floor(N/2) + 1)
+
+        # get filter
+        #   low-pass
+        if filter_type == 'Low pass':
+            new_fc = f1 + 0.5 * transition_band
+            new_fc = new_fc / fs
+
+            for n in indices:
+                w_n = self.window_function(stop_band_attenuation, n, N)
+                # print("win", w_n)
+                if n == 0:
+                    h_d = 2*new_fc
+                else:
+                    h_d = 2*new_fc * (np.sin(n*2*np.pi*new_fc)/(n*2*np.pi*new_fc))
+                    # print("hd",h_d)
+                    # print(new_fc)
+                h.append(h_d*w_n)
+            # [print(row) for row in list(zip(indices, h))]
+
+        #   high-pass
+        elif filter_type == 'High pass':
+            new_fc = f1 - 0.5 * transition_band
+            new_fc /= fs
+
+            for n in indices:
+                w_n = self.window_function(stop_band_attenuation, n, N)
+                if n == 0:
+                    h_d = 1 - 2*new_fc
+                else:
+                    h_d = -2*new_fc * (np.sin(n*2*np.pi*new_fc)/(n*2*np.pi*new_fc))
+                h.append(h_d * w_n)
+            # [print(row) for row in list(zip(indices, h))]
+
+        #   band-pass
+        elif filter_type == 'Band pass':
+            new_fc = f1 - 0.5 * transition_band
+            new_fc /= fs
+            new_fc2 = f2 + 0.5 * transition_band
+            new_fc2 /= fs
+
+            for n in indices:
+                w_n = self.window_function(stop_band_attenuation, n, N)
+                if n == 0:
+                    h_d = 2*(new_fc2 - new_fc)
+                else:
+                    h_d = 2*new_fc2*(np.sin(n*2*np.pi*new_fc2)/(n*2*np.pi*new_fc2)) - 2*new_fc*(np.sin(n*2*np.pi*new_fc)/(n*2*np.pi*new_fc))
+                h.append(h_d * w_n)
+            # [print(row) for row in list(zip(indices, h))]
+
+        #   band-stop
+        elif filter_type == 'Band stop':
+            new_fc = f1 + 0.5 * transition_band
+            new_fc /= fs
+            new_fc2 = f2 - 0.5 * transition_band
+            new_fc2 /= fs
+
+            for n in indices:
+                w_n = self.window_function(stop_band_attenuation, n, N)
+                if n == 0:
+                    h_d = 1-2*(new_fc2 - new_fc)
+                else:
+                    h_d = 2*new_fc*(np.sin(n*2*np.pi*new_fc)/(n*2*np.pi*new_fc)) - 2*new_fc2*(np.sin(n*2*np.pi*new_fc2)/(n*2*np.pi*new_fc2))
+                h.append(h_d * w_n)
+            # [print(row) for row in list(zip(indices, h))]
+
+        return indices, h
+
+
+    def calc_convolution(self,x_values1, y_values1, x_values2, y_values2):
+        len1 = len(y_values1)
+        len2 = len(y_values2)
+        result = []
+
+        start_index = int(min(x_values1) + min(x_values2))
+        end_index = int(max(x_values1) + max(x_values2))
+
+        x_values = list(range(start_index, end_index + 1))
+
+        for n in range(len1 + len2 - 1):
+            sum = 0
+            for m in range(min(n, len1 - 1) + 1):
+                if 0 <= n - m < len2:
+                    sum += y_values1[m] * y_values2[n - m]
+            result.append(sum)
+        return x_values, result
+
+    def fir_filter_generator(self):
+        filter_type = (self.time_domain_filter_combobox.get())
+        fs = float(self.sampling_freq_entry.get())
+        stop_band_attenuation = float(self.stop_band_att_entry.get())
+        f1 = float(self.FC1_entry.get())
+        if filter_type == "Band pass" or filter_type == "Band stop":
+            f2 = float(self.FC2_entry.get())
+        transition_band = float(self.trans_band_entry.get())
+
+        if filter_type == "Low pass" or filter_type == "High pass":
+            indices, filter_ = self.init_fir_filter(filter_type, fs, stop_band_attenuation, transition_band,f1)
+        else:
+            indices, filter_ = self.init_fir_filter(filter_type, fs, stop_band_attenuation, transition_band, f1, f2)
+
+        self.plot_signals(indices,filter_,"filter coff")
+
+        if len(self.stack)!=0:
+            sig = copy.deepcopy(self.stack[-1])
+            X,Y = self.calc_convolution(sig.X,sig.Y,indices,filter_)
+            self.plot_signals(X,Y,"filtered signal")
+
+            self.last_signal.X = copy.deepcopy(X)
+            self.last_signal.Y = copy.deepcopy(Y)
+        else:
+            self.last_signal.X = copy.deepcopy(indices)
+            self.last_signal.Y = copy.deepcopy(filter_)
+
+
 
     def remove_DC_time(self):
         if len(self.stack)==0:
@@ -1221,6 +1573,6 @@ class Task_1:
 if __name__ == "__main__":
     root = tk.Tk()
     root.title("Signal Generator")
-    root.geometry("400x600")
+    root.geometry("400x800")
     app = Task_1(root)
     root.mainloop()
