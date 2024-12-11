@@ -362,7 +362,7 @@ class Task_1:
         self.trans_band_label.pack_forget()
         self.trans_band_entry.pack_forget()
         self.load_spec_butt.pack_forget()
-
+        self.stop_band_att_entry.pack_forget()
         self.decimation_M_label.pack_forget()
         self.decimation_M_entry.pack_forget()
         self.interpolate_L_label.pack_forget()
@@ -402,8 +402,8 @@ class Task_1:
         else:
             #self.shift_entry.pack_forget()
             if selected_value=='filter' or selected_value =='resample':
-                self.time_domain_filter_combobox.pack()
-                self.load_spec_butt.pack()
+                self.time_domain_filter_combobox.pack(pady=1)
+                self.load_spec_butt.pack(pady=1)
                 self.sampling_freq_label.pack(pady=1)
                 self.sampling_freq_entry.pack(pady=1)
                 self.stop_band_att_label.pack(pady=1)
@@ -416,10 +416,10 @@ class Task_1:
                 self.trans_band_label.pack(pady=1)
                 self.trans_band_entry.pack(pady=1)
                 if selected_value == 'resample':
-                    self.decimation_M_label.pack()
-                    self.decimation_M_entry.pack()
-                    self.interpolate_L_label.pack()
-                    self.interpolate_L_entry.pack()
+                    self.decimation_M_label.pack(pady=1)
+                    self.decimation_M_entry.pack(pady=1)
+                    self.interpolate_L_label.pack(pady=1)
+                    self.interpolate_L_entry.pack(pady=1)
             else:
                 messagebox.showinfo("ERROR","invalid choice in time domain combo box!")
 
